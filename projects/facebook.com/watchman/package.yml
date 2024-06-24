@@ -19,7 +19,9 @@ dependencies:
   pcre.org/v2: ^10
   python.org: ~3.11
   linux:
-    llvm.org: ~17 # libunwind
+    libcxx.llvm.org: 18 # libunwind
+  linux/aarch64:
+    gnu.org/gcc/libstdcxx: 13 # libatomic
 
 build:
   dependencies:
@@ -30,6 +32,12 @@ build:
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
   script:
+    # version/path mismatch
+    - run: |
+        if test -f Cargo.toml; then
+          sed -i 's/watchman_client = { version = ".*", path/watchman_client = { path/' Cargo.toml
+        fi
+      working-directory: watchman/cli
     - cmake -S . -B build $CMAKE_ARGS -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
     - cmake --install build
@@ -51,9 +59,14 @@ build:
         - -fPIC
         - -latomic
         - -Wl,--allow-shlib-undefined
+    linux/x86-64:
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
+    linux/aarch64:
+      CMAKE_ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-latomic,-lstdc++
 
 provides:
   - bin/watchman
